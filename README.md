@@ -5,9 +5,12 @@ The problem with TA-Lib is that you must compute on the entire period, meaning t
 
 ## Indicators
 Currently implemented:
+```
 RSI
+```
 
 Would like to have:
+```
 ADX
 ATR
 PLUS_DI (part of ADX calculation)
@@ -15,3 +18,4 @@ MINUS_DI (part of ADX calculation)
 SMA 
 EMA
 BBAND
+```
