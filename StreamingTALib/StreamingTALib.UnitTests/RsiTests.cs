@@ -20,7 +20,6 @@ namespace StreamingTALib.UnitTests
         [Fact]
         public void Rsi25_Should_ProduceCorrectResult()
         {
-            ////TicTacTec.TA.Library.Core.Rsi
             List<double> performanceData = GetPerformanceDemoData();
 
             int period = 25;

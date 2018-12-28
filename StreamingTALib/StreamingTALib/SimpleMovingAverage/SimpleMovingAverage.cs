@@ -10,6 +10,11 @@
         {
             this.k = 0;
             this.SimpleMovingAverageState = new SimpleMovingAverageState(period);
+
+            for (int i = 0; i < period; i++)
+            {
+                this.AddValue(0m);
+            }
         }
 
         public SimpleMovingAverageState IntegrateValue(decimal value)
@@ -20,7 +25,7 @@
             return this.SimpleMovingAverageState;
         }
 
-        public void AddValue(decimal value)
+        private void AddValue(decimal value)
         {
             this.k += 1;
             decimal current_mean = this.SimpleMovingAverageState.Mean;

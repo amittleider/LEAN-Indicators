@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace StreamingTALib.Adx
+namespace StreamingTALib
 {
     public class Adx
     {
@@ -10,10 +10,19 @@ namespace StreamingTALib.Adx
 
         public AdxState AdxState { get; private set; }
 
+        SimpleMovingAverage smoothedDirectionalMovementPlusSma;
+        SimpleMovingAverage smoothedDirectionalMovementMinusSma;
+        SimpleMovingAverage smoothedTrueRange;
+        SimpleMovingAverage smoothedAdx;
+
         public Adx(int period)
         {
             this.Period = period;
             this.AdxState = new AdxState();
+            this.smoothedDirectionalMovementPlusSma = new SimpleMovingAverage(this.Period);
+            this.smoothedDirectionalMovementMinusSma = new SimpleMovingAverage(this.Period);
+            this.smoothedTrueRange = new SimpleMovingAverage(this.Period);
+            this.smoothedAdx = new SimpleMovingAverage(this.Period);
         }
 
         /// <summary>
@@ -24,7 +33,7 @@ namespace StreamingTALib.Adx
         private decimal ComputePositiveDirectionalMovement(decimal high, decimal low)
         {
             if (this.AdxState.PreviousHigh != 0 &&
-                high> this.AdxState.PreviousHigh &&
+                high > this.AdxState.PreviousHigh &&
                 high - this.AdxState.PreviousHigh >= this.AdxState.PreviousLow - low)
             {
                 return high - this.AdxState.PreviousHigh;
@@ -74,18 +83,27 @@ namespace StreamingTALib.Adx
         /// </summary>
         /// <param name="input">The input given to the indicator</param>
         /// <returns>A new value for this indicator</returns>
-        protected AdxState ComputeNextValue(decimal high, decimal low, decimal close)
+        public AdxState ComputeNextValue(decimal high, decimal low, decimal close)
         {
             decimal trueRange = this.ComputeTrueRange(high, low);
             decimal directionalMovementPlus = this.ComputePositiveDirectionalMovement(high, low);
             decimal directionalMovementMinus = this.ComputeNegativeDirectionalMovement(high, low);
-            decimal smoothedTrueRange = trueRange / this.Period;
-            decimal smoothedDirectionalMovementPlus = directionalMovementPlus / this.Period;
-            decimal smoothedDirectionalMovementMinus = directionalMovementMinus / this.Period;
 
+            var smoothedTrueRangeState = this.smoothedTrueRange.IntegrateValue(trueRange);
+            var smoothedMinusState = this.smoothedDirectionalMovementMinusSma.IntegrateValue(directionalMovementMinus);
+            var smoothedPlusState = this.smoothedDirectionalMovementPlusSma.IntegrateValue(directionalMovementPlus);
 
-            decimal positiveDirectionalIndex = 100m * smoothedDirectionalMovementPlus / smoothedTrueRange;
-            decimal negativeDirectionalIndex = 100m * smoothedDirectionalMovementMinus / smoothedTrueRange;
+            if (smoothedTrueRangeState.Mean == 0)
+            {
+                this.AdxState.AverageDirectionalIndex = 50m;
+                this.AdxState.PreviousClose = close;
+                this.AdxState.PreviousHigh = high;
+                this.AdxState.PreviousLow = low;
+                return this.AdxState;
+            }
+
+            decimal positiveDirectionalIndex = 100m * smoothedPlusState.Mean / smoothedTrueRangeState.Mean;
+            decimal negativeDirectionalIndex = 100m * smoothedMinusState.Mean / smoothedTrueRangeState.Mean;
 
             var diff = Math.Abs(positiveDirectionalIndex - negativeDirectionalIndex);
             var sum = positiveDirectionalIndex + negativeDirectionalIndex;
@@ -93,11 +111,18 @@ namespace StreamingTALib.Adx
             if (sum == 0)
             {
                 this.AdxState.AverageDirectionalIndex = 50m;
+                this.AdxState.PreviousClose = close;
+                this.AdxState.PreviousHigh = high;
+                this.AdxState.PreviousLow = low;
                 return this.AdxState;
             }
 
+            this.smoothedAdx.IntegrateValue(100m * diff / sum);
+            this.AdxState.AverageDirectionalIndex = this.smoothedAdx.SimpleMovingAverageState.Mean;
 
-            this.AdxState.AverageDirectionalIndex= 100m * diff / sum;
+            this.AdxState.PreviousClose = close;
+            this.AdxState.PreviousHigh = high;
+            this.AdxState.PreviousLow = low;
             return this.AdxState;
         }
     }

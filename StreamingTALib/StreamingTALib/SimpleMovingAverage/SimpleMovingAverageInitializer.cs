@@ -28,14 +28,7 @@ namespace StreamingTALib
             SimpleMovingAverage simpleMovingAverage = new SimpleMovingAverage(this.period);
             for (int i = 0; i < values.Count; i++)
             {
-                if (i < this.period)
-                {
-                    simpleMovingAverage.AddValue(values[i]);
-                }
-                else
-                {
-                    simpleMovingAverage.IntegrateValue(values[i]);
-                }
+                simpleMovingAverage.IntegrateValue(values[i]);
             }
 
             return simpleMovingAverage;

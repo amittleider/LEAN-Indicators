@@ -1,16 +1,11 @@
-﻿namespace StreamingTALib.Adx
+﻿namespace StreamingTALib
 {
     public class AdxState
     {
         /// <summary>
         /// Gets previous low
         /// </summary>
-        public decimal PreviousLow
-        {
-            get;
-            private set;
-        }
-
+        public decimal PreviousLow;
         public decimal AverageDirectionalIndex;
         public decimal PreviousHigh;
         public decimal PreviousClose;
