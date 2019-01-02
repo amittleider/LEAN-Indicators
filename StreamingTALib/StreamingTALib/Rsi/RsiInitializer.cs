@@ -43,11 +43,6 @@ namespace StreamingTALib
         /// <returns>An RSI object</returns>
         public Rsi InitalizeWithData(List<double> prices)
         {
-            if (prices.Count < RsiInitializer.GetLookback(this.period))
-            {
-                throw new Exception("Cannot initialize the RSI with this period. Not enough values.");
-            }
-
             RsiState rsiState = null;
             Rsi rsi = new Rsi(this.period);
             rsi.RsiState.PreviousPrice = prices.First();

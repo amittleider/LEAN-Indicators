@@ -1,128 +1,81 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 namespace StreamingTALib
 {
+    using System;
+
+    /// <summary>
+    /// The ADX indicator
+    /// </summary>
     public class Adx
     {
-        public int Period { get; }
+        private readonly int period;
+        private readonly DirectionalMovement dm;
+        private readonly TrueRange trueRange;
+        private readonly DirectionalMovementAggregate actualPlusDm14Wma;
+        private readonly DirectionalMovementAggregate actualMinusDm14Wma;
+        private readonly DirectionalMovementAggregate actualTrueRange14Wma;
+        private readonly WildersMovingAverage adxSma;
 
-        public AdxState AdxState { get; private set; }
-
-        SimpleMovingAverage smoothedDirectionalMovementPlusSma;
-        SimpleMovingAverage smoothedDirectionalMovementMinusSma;
-        SimpleMovingAverage smoothedTrueRange;
-        SimpleMovingAverage smoothedAdx;
-
-        public Adx(int period)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Adx"/> class.
+        /// Use the AdxInitializer to instantiate an instance of this class.
+        /// </summary>
+        /// <param name="period">The period of the indicator</param>
+        /// <param name="directionalMovement">The directional movement indicator</param>
+        /// <param name="trueRange">The true range indiciator</param>
+        /// <param name="actualPlusDm14Wma">The plus directional movement indicator sent through a Wilder's Moving Average indicator</param>
+        /// <param name="actualMinusDm14Wma">The minus directional movement indicator sent through a Wilder's Moving Average indicator</param>
+        /// <param name="actualTrueRange14Wma">The true range indiciator sent through a Wilder's Moving Average indiciator</param>
+        /// <param name="adxSma">The Wilder's moving average indicator that smooths the ADX values</param>
+        internal Adx(int period, DirectionalMovement directionalMovement, TrueRange trueRange, DirectionalMovementAggregate actualPlusDm14Wma, DirectionalMovementAggregate actualMinusDm14Wma, DirectionalMovementAggregate actualTrueRange14Wma, WildersMovingAverage adxSma)
         {
-            this.Period = period;
+            this.period = period;
+            this.dm = directionalMovement;
+            this.trueRange = trueRange;
+            this.actualPlusDm14Wma = actualPlusDm14Wma;
+            this.actualMinusDm14Wma = actualMinusDm14Wma;
+            this.actualTrueRange14Wma = actualTrueRange14Wma;
+            this.adxSma = adxSma;
             this.AdxState = new AdxState();
-            this.smoothedDirectionalMovementPlusSma = new SimpleMovingAverage(this.Period);
-            this.smoothedDirectionalMovementMinusSma = new SimpleMovingAverage(this.Period);
-            this.smoothedTrueRange = new SimpleMovingAverage(this.Period);
-            this.smoothedAdx = new SimpleMovingAverage(this.Period);
         }
 
         /// <summary>
-        /// Computes the positive directional movement.
+        /// Gets the ADX State
         /// </summary>
-        /// <param name="input">The input.</param>
-        /// <returns></returns>
-        private decimal ComputePositiveDirectionalMovement(decimal high, decimal low)
+        public AdxState AdxState
         {
-            if (this.AdxState.PreviousHigh != 0 &&
-                high > this.AdxState.PreviousHigh &&
-                high - this.AdxState.PreviousHigh >= this.AdxState.PreviousLow - low)
-            {
-                return high - this.AdxState.PreviousHigh;
-            }
-
-            return 0m;
+            get;
         }
 
         /// <summary>
-        /// Computes the negative directional movement.
+        /// Computes the next value of the ADX given the current high, low, and close
         /// </summary>
-        /// <param name="input">The input.</param>
-        /// <returns></returns>
-        private decimal ComputeNegativeDirectionalMovement(decimal high, decimal low)
-        {
-            if (this.AdxState.PreviousLow != 0 &&
-                this.AdxState.PreviousLow > low &&
-                this.AdxState.PreviousLow - low > high - this.AdxState.PreviousHigh)
-            {
-                return this.AdxState.PreviousLow - low;
-            }
-
-            return 0m;
-        }
-
-        /// <summary>
-        /// Computes the True Range value.
-        /// </summary>
-        /// <param name="input">The input.</param>
-        /// <returns></returns>
-        private decimal ComputeTrueRange(decimal high, decimal low)
-        {
-            if (this.AdxState.PreviousLow == 0)
-            {
-                return 0m;
-            }
-
-            var range1 = high - low;
-            var range2 = Math.Abs(high - this.AdxState.PreviousClose);
-            var range3 = Math.Abs(low - this.AdxState.PreviousClose);
-
-            return Math.Max(range1, Math.Max(range2, range3));
-        }
-
-        /// <summary>
-        /// Computes the next value of this indicator from the given state
-        /// </summary>
-        /// <param name="input">The input given to the indicator</param>
-        /// <returns>A new value for this indicator</returns>
+        /// <param name="high">The current high</param>
+        /// <param name="low">The current low</param>
+        /// <param name="close">The current close</param>
+        /// <returns>The ADX state representing the current ADX value</returns>
         public AdxState ComputeNextValue(decimal high, decimal low, decimal close)
         {
-            decimal trueRange = this.ComputeTrueRange(high, low);
-            decimal directionalMovementPlus = this.ComputePositiveDirectionalMovement(high, low);
-            decimal directionalMovementMinus = this.ComputeNegativeDirectionalMovement(high, low);
+            DirectionalMovementState directionalMovementState = this.dm.IntegrateValue(high, low);
+            DirectionalMovementAggregateState actualPlusDm14SmaState = this.actualPlusDm14Wma.IntegrateValue(directionalMovementState.PlusDirectionalMovement);
+            DirectionalMovementAggregateState actualMinusDm14SmaState = this.actualMinusDm14Wma.IntegrateValue(directionalMovementState.MinusDirectionalMovement);
 
-            var smoothedTrueRangeState = this.smoothedTrueRange.IntegrateValue(trueRange);
-            var smoothedMinusState = this.smoothedDirectionalMovementMinusSma.IntegrateValue(directionalMovementMinus);
-            var smoothedPlusState = this.smoothedDirectionalMovementPlusSma.IntegrateValue(directionalMovementPlus);
+            TrueRangeState trueRangeState = this.trueRange.ComputeTrueRange(high, low, close);
+            DirectionalMovementAggregateState actualTrueRange14State = this.actualTrueRange14Wma.IntegrateValue(trueRangeState.TrueRange);
 
-            if (smoothedTrueRangeState.Mean == 0)
-            {
-                this.AdxState.AverageDirectionalIndex = 50m;
-                this.AdxState.PreviousClose = close;
-                this.AdxState.PreviousHigh = high;
-                this.AdxState.PreviousLow = low;
-                return this.AdxState;
-            }
+            // Calculate the DIs by dividing the directional movement by the true range
+            decimal actualPlusDi = actualPlusDm14SmaState.WildersAggregate / actualTrueRange14State.WildersAggregate * 100.0m;
+            decimal actualMinusDi = actualMinusDm14SmaState.WildersAggregate / actualTrueRange14State.WildersAggregate * 100.0m;
 
-            decimal positiveDirectionalIndex = 100m * smoothedPlusState.Mean / smoothedTrueRangeState.Mean;
-            decimal negativeDirectionalIndex = 100m * smoothedMinusState.Mean / smoothedTrueRangeState.Mean;
+            decimal diDiff = Math.Abs(actualPlusDi - actualMinusDi);
+            decimal diSum = actualPlusDi + actualMinusDi;
 
-            var diff = Math.Abs(positiveDirectionalIndex - negativeDirectionalIndex);
-            var sum = positiveDirectionalIndex + negativeDirectionalIndex;
+            decimal di = diDiff / diSum * 100m;
 
-            if (sum == 0)
-            {
-                this.AdxState.AverageDirectionalIndex = 50m;
-                this.AdxState.PreviousClose = close;
-                this.AdxState.PreviousHigh = high;
-                this.AdxState.PreviousLow = low;
-                return this.AdxState;
-            }
+            WildersMovingAverageState adxSmaState = this.adxSma.IntegrateValue(di);
 
-            this.smoothedAdx.IntegrateValue(100m * diff / sum);
-            this.AdxState.AverageDirectionalIndex = this.smoothedAdx.SimpleMovingAverageState.Mean;
-
-            this.AdxState.PreviousClose = close;
-            this.AdxState.PreviousHigh = high;
-            this.AdxState.PreviousLow = low;
+            this.AdxState.AverageDirectionalIndex = adxSmaState.Mean;
             return this.AdxState;
         }
     }

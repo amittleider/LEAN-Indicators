@@ -11,7 +11,7 @@ namespace StreamingTALib
         /// Initializes a new instance of the <see cref="Rsi"/> class.
         /// </summary>
         /// <param name="period">The period</param>
-        public Rsi(int period)
+        internal Rsi(int period)
         {
             this.RsiState = new RsiState();
             this.Period = period;
