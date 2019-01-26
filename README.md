@@ -8,3 +8,5 @@ Quantconnect has solved the problem, but is compiled in net4.6. This project is 
 ## Builds
 [![Build Status](https://dev.azure.com/amittleider/Streaming-TALib/_apis/build/status/amittleider.Streaming-TALib)](https://dev.azure.com/amittleider/Streaming-TALib/_build/latest?definitionId=1)
 
+## Nuget package
+Find the nuget package here: https://www.nuget.org/packages/AutoFinance.QuantConnect.Indicators/
