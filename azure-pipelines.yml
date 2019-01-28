@@ -22,13 +22,13 @@ steps:
 
 - task: PublishBuildArtifacts@1
   displayName: publish artifacts
-  #condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
   inputs:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
     
 - task: DotNetCoreCLI@2
   displayName: dotnet nuget push
-  #condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
   inputs:
     command: custom
     custom: nuget
